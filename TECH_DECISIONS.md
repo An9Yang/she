@@ -244,8 +244,8 @@ async def startup_event():
 - ⚠️ 需要手动管理数据一致性
 
 ### TODO
-- [ ] 修复MongoDB索引冲突
-- [ ] 迁移回main.py
+- [x] 修复MongoDB索引冲突 ✅ [2025-07-04]
+- [x] 迁移回main.py ✅ [2025-07-04]
 - [ ] 添加数据库健康检查
 
 ---

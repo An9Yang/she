@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Upload, X, FileText, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload, X, FileText, CheckCircle, AlertCircle, Cloud, Sparkles } from 'lucide-react'
 import api from '@/services/api'
 
 interface FileUploadProps {
@@ -121,54 +121,92 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
     <div className="w-full max-w-2xl mx-auto">
       {uploadStatus === 'idle' && !file && (
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+          className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 overflow-hidden ${
+            isDragging 
+              ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 scale-[1.02]' 
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-gray-50 dark:bg-gray-800/50'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-          <p className="text-lg mb-2">拖拽文件到这里，或者</p>
-          <label className="inline-block">
-            <input
-              type="file"
-              className="hidden"
-              accept={acceptedFormats.join(',')}
-              onChange={handleFileSelect}
-            />
-            <span className="bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-700">
-              选择文件
-            </span>
-          </label>
-          <p className="text-sm text-gray-500 mt-4">
-            支持格式: {acceptedFormats.join(', ')} (最大100MB)
-          </p>
+          {/* Background decoration */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute top-10 left-10 w-32 h-32 bg-blue-500 rounded-full blur-3xl" />
+            <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-500 rounded-full blur-3xl" />
+          </div>
+          
+          <div className="relative z-10">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center shadow-lg transform transition-transform hover:scale-110">
+              <Cloud className="w-10 h-10 text-white" />
+            </div>
+            
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
+              拖拽文件到这里上传
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">或者点击下方按钮选择文件</p>
+            
+            <label className="inline-block">
+              <input
+                type="file"
+                className="hidden"
+                accept={acceptedFormats.join(',')}
+                onChange={handleFileSelect}
+              />
+              <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-3 rounded-xl cursor-pointer hover:from-blue-600 hover:to-purple-600 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                选择文件
+              </span>
+            </label>
+            
+            <div className="mt-8 space-y-2">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                支持格式: {acceptedFormats.join(', ')}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                最大文件大小: 100MB
+              </p>
+            </div>
+            
+            {/* Feature badges */}
+            <div className="mt-6 flex justify-center gap-4">
+              <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                <Sparkles className="w-4 h-4 text-yellow-500" />
+                <span>智能解析</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span>安全加密</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {file && uploadStatus === 'idle' && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="card-modern p-6 fade-in">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <FileText className="w-8 h-8 text-blue-600 mr-3" />
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center mr-4">
+                <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
               <div>
-                <p className="font-semibold">{file.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-semibold text-gray-900 dark:text-white">{file.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
             </div>
             <button
               onClick={reset}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-110"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </button>
           </div>
           <button
             onClick={handleUpload}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl font-medium"
           >
             开始上传
           </button>
@@ -176,34 +214,50 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
       )}
 
       {(uploadStatus === 'uploading' || uploadStatus === 'processing') && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="mb-4">
-            <p className="font-semibold mb-2">
-              {uploadStatus === 'uploading' ? '上传中...' : '处理中...'}
-            </p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="card-modern p-6 scale-in">
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold text-gray-900 dark:text-white">
+                {uploadStatus === 'uploading' ? '上传中...' : '处理中...'}
+              </p>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {progress}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                className="h-full rounded-full transition-all duration-500 relative overflow-hidden bg-gradient-to-r from-blue-500 to-purple-500"
                 style={{ width: `${progress}%` }}
-              />
+              >
+                <div className="absolute inset-0 bg-white/30 animate-pulse" />
+              </div>
             </div>
           </div>
-          <p className="text-sm text-gray-500">
-            {uploadStatus === 'uploading' 
-              ? '正在上传文件...' 
-              : '正在分析聊天记录，这可能需要几分钟...'}
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {uploadStatus === 'uploading' 
+                ? '正在安全上传您的文件...' 
+                : '正在智能分析聊天记录，这可能需要几分钟...'}
+            </p>
+          </div>
         </div>
       )}
 
       {uploadStatus === 'success' && (
-        <div className="bg-green-50 rounded-lg p-6 text-center">
-          <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
-          <p className="text-lg font-semibold text-green-800 mb-2">上传成功！</p>
-          <p className="text-gray-600 mb-4">聊天记录已成功导入</p>
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-8 text-center scale-in">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center shadow-lg animate-bounce">
+            <CheckCircle className="w-12 h-12 text-white" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">上传成功！</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">聊天记录已成功导入，AI正在学习中...</p>
           <button
             onClick={reset}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+            className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-3 rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl font-medium"
           >
             继续上传
           </button>
@@ -211,26 +265,31 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
       )}
 
       {uploadStatus === 'error' && (
-        <div className="bg-red-50 rounded-lg p-6">
-          <div className="flex items-start">
-            <AlertCircle className="w-6 h-6 text-red-600 mr-3 flex-shrink-0" />
+        <div className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-2xl p-6 fade-in">
+          <div className="flex items-start mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-pink-400 flex items-center justify-center mr-4 flex-shrink-0">
+              <AlertCircle className="w-7 h-7 text-white" />
+            </div>
             <div className="flex-1">
-              <p className="font-semibold text-red-800 mb-1">上传失败</p>
-              <p className="text-red-600">{errorMessage}</p>
+              <p className="font-semibold text-gray-900 dark:text-white mb-1">上传失败</p>
+              <p className="text-gray-700 dark:text-gray-300">{errorMessage}</p>
             </div>
           </div>
           <button
             onClick={reset}
-            className="mt-4 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700"
+            className="w-full bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl font-medium"
           >
-            重试
+            重新尝试
           </button>
         </div>
       )}
 
       {errorMessage && uploadStatus === 'idle' && (
-        <div className="mt-4 bg-red-50 rounded-lg p-4">
-          <p className="text-red-600 text-sm">{errorMessage}</p>
+        <div className="mt-4 bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800 fade-in">
+          <p className="text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {errorMessage}
+          </p>
         </div>
       )}
     </div>

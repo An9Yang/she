@@ -11,11 +11,12 @@ from backend.models.user import User
 from backend.models.persona import Persona
 from backend.models.message import Message
 from backend.models.chat_model import Chat
+from backend.schemas.persona import PersonaResponse
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", response_model=List[PersonaResponse])
 async def list_personas(
     current_user: User = Depends(get_current_user),
     skip: int = 0,
@@ -28,7 +29,7 @@ async def list_personas(
     return personas
 
 
-@router.get("/{persona_id}")
+@router.get("/{persona_id}", response_model=PersonaResponse)
 async def get_persona(
     persona_id: str,
     current_user: User = Depends(get_current_user)

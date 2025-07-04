@@ -15,7 +15,7 @@ echo -e "${BLUE}📦 启动后端服务...${NC}"
 cd backend
 source venv/bin/activate
 export PYTHONPATH="$(dirname "$PWD"):$PYTHONPATH"
-python -m uvicorn backend.main_simple:app --reload --host 0.0.0.0 --port 8000 &
+python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 echo -e "${GREEN}✅ 后端启动成功 (PID: $BACKEND_PID)${NC}"
 echo "   访问地址: http://localhost:8000"

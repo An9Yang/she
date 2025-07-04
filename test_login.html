@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        input { margin: 5px; padding: 5px; }
+        button { margin: 10px 0; padding: 10px; }
+        #result { margin-top: 20px; padding: 10px; background: #f0f0f0; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>测试登录</h1>
+    
+    <div>
+        <input type="email" id="email" placeholder="Email" value="test@example.com"><br>
+        <input type="password" id="password" placeholder="Password" value="Test123456!"><br>
+        <button onclick="testLogin()">测试登录</button>
+        <button onclick="checkToken()">检查Token</button>
+        <button onclick="clearToken()">清除Token</button>
+    </div>
+    
+    <div id="result"></div>
+    
+    <script>
+        const resultDiv = document.getElementById('result');
+        
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            resultDiv.innerHTML = '<p>正在登录...</p>';
+            
+            try {
+                // 1. 登录请求
+                const response = await fetch('http://localhost:8000/api/auth/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+                });
+                
+                resultDiv.innerHTML += `<p>响应状态: ${response.status}</p>`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML += `<p class="success">登录成功!</p>`;
+                    resultDiv.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    
+                    // 2. 保存token
+                    if (data.access_token) {
+                        localStorage.setItem('token', data.access_token);
+                        document.cookie = `auth-token=${data.access_token}; path=/; max-age=86400`;
+                        resultDiv.innerHTML += `<p class="success">Token已保存到localStorage和Cookie</p>`;
+                    }
+                    
+                    // 3. 测试token是否有效
+                    await testAuthenticatedRequest(data.access_token);
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML += `<p class="error">登录失败: ${error}</p>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML += `<p class="error">网络错误: ${err.message}</p>`;
+            }
+        }
+        
+        async function testAuthenticatedRequest(token) {
+            resultDiv.innerHTML += '<h3>测试认证请求:</h3>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    resultDiv.innerHTML += `<p class="success">认证成功! 用户信息:</p>`;
+                    resultDiv.innerHTML += `<pre>${JSON.stringify(user, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML += `<p class="error">认证失败: ${response.status}</p>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML += `<p class="error">请求失败: ${err.message}</p>`;
+            }
+        }
+        
+        function checkToken() {
+            const token = localStorage.getItem('token');
+            const cookies = document.cookie;
+            
+            resultDiv.innerHTML = '<h3>当前存储的认证信息:</h3>';
+            resultDiv.innerHTML += `<p>LocalStorage Token: ${token ? '存在 (前50字符: ' + token.substring(0, 50) + '...)' : '不存在'}</p>`;
+            resultDiv.innerHTML += `<p>Cookies: ${cookies || '无'}</p>`;
+            
+            if (token) {
+                testAuthenticatedRequest(token);
+            }
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('token');
+            document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            resultDiv.innerHTML = '<p class="success">Token已清除</p>';
+        }
+        
+        // 页面加载时检查
+        checkToken();
+    </script>
+</body>
+</html>

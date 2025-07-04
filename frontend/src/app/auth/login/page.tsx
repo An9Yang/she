@@ -25,8 +25,7 @@ export default function LoginPage() {
         username: formData.email,
         password: formData.password,
       })
-      // 模拟登录成功，设置token
-      localStorage.setItem('token', 'mock-token')
+      // 登录成功后，token已经被api.auth.login自动保存
       router.push('/personas')
     } catch (error: any) {
       setError(error.message || '登录失败，请检查邮箱和密码')

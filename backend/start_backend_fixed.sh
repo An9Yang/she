@@ -23,11 +23,11 @@ else
     echo "⚠️  警告: .env文件不存在"
 fi
 
-# 使用简化版本启动（避免MongoDB索引冲突）
-echo "🔧 使用 main_simple.py 启动..."
+# 启动完整版本（MongoDB索引问题已修复）
+echo "🔧 使用 main.py 启动..."
 echo "📍 访问地址: http://localhost:8000"
 echo "📚 API文档: http://localhost:8000/docs"
 echo ""
 
 # 启动服务
-uvicorn backend.main_simple:app --reload --host 0.0.0.0 --port 8000
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000

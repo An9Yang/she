@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Upload as UploadIcon, LogOut } from 'lucide-react'
 import PersonaCard from '@/components/PersonaCard'
+import PersonaCardSkeleton from '@/components/PersonaCardSkeleton'
 import FileUpload from '@/components/FileUpload'
 import api from '@/services/api'
 
@@ -15,15 +16,26 @@ export default function PersonasPage() {
   const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
-    checkAuth()
-    loadPersonas()
+    // 添加调试信息
+    console.log('PersonasPage mounted, checking auth...')
+    console.log('Current token:', localStorage.getItem('token'))
+    checkAuthAndLoadData()
   }, [])
 
-  const checkAuth = async () => {
+  const checkAuthAndLoadData = async () => {
     try {
+      // 先检查认证
       const user = await api.auth.getCurrentUser()
       setCurrentUser(user)
-    } catch (error) {
+      
+      // 认证成功后再加载数据
+      await loadPersonas()
+    } catch (error: any) {
+      // 401错误是预期的（用户未登录），不需要在控制台显示
+      if (error.status !== 401) {
+        console.error('Authentication error:', error)
+      }
+      // 跳转到登录页
       router.push('/auth/login')
     }
   }
@@ -31,6 +43,15 @@ export default function PersonasPage() {
   const loadPersonas = async () => {
     try {
       const data = await api.persona.list()
+      console.log('🔍 调试: 从API获取的personas数据:', data)
+      if (data && data.length > 0) {
+        console.log('🔍 第一个persona的结构:', data[0])
+        console.log('🔍 检查id字段:', {
+          'id': data[0].id,
+          '_id': data[0]._id,
+          '所有字段': Object.keys(data[0])
+        })
+      }
       setPersonas(data)
     } catch (error) {
       console.error('Failed to load personas:', error)
@@ -56,7 +77,8 @@ export default function PersonasPage() {
 
   const handleLogout = () => {
     api.auth.logout()
-    router.push('/')
+    // 使用 replace 而不是 push，避免用户点击返回按钮
+    router.replace('/')
   }
 
   return (
@@ -98,9 +120,10 @@ export default function PersonasPage() {
 
         {/* 人格列表 */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">加载中...</p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, index) => (
+              <PersonaCardSkeleton key={`skeleton-${index}`} />
+            ))}
           </div>
         ) : personas.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
@@ -116,11 +139,12 @@ export default function PersonasPage() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {personas.map((persona: any) => (
+            {personas.map((persona: any, index: number) => (
               <PersonaCard
-                key={persona.id}
+                key={persona.id || `persona-${index}`}
                 persona={persona}
                 onDelete={handleDelete}
+                index={index}
               />
             ))}
           </div>

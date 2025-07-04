@@ -2,10 +2,11 @@
 人格相关Schema
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from uuid import UUID
 from typing import Optional, Dict, List
+from bson import ObjectId
 from backend.models.persona import PersonaStatus
 
 
@@ -24,8 +25,8 @@ class PersonaUpdate(BaseModel):
 
 
 class PersonaResponse(PersonaBase):
-    id: UUID
-    user_id: UUID
+    id: str
+    user_id: str
     status: PersonaStatus
     source_platform: Optional[str]
     message_count: int
@@ -37,6 +38,12 @@ class PersonaResponse(PersonaBase):
     personality_summary: Optional[str]
     created_at: datetime
     updated_at: datetime
+    
+    @field_validator('id', 'user_id', mode='before')
+    def convert_objectid(cls, v):
+        if isinstance(v, ObjectId):
+            return str(v)
+        return v
     
     class Config:
         from_attributes = True

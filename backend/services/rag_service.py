@@ -13,6 +13,7 @@ from backend.models.message import Message
 from backend.models.persona import Persona
 from backend.models.chat import ChatHistory
 from backend.core.logger import logger
+from backend.services.mock_embeddings import MockEmbeddingService
 
 
 class RAGService:
@@ -31,11 +32,16 @@ class RAGService:
     async def generate_embedding(self, text: str) -> List[float]:
         """生成文本向量"""
         try:
-            response = await self.client.embeddings.create(
-                model=self.embedding_deployment,
-                input=text
-            )
-            return response.data[0].embedding
+            # 暂时使用模拟embeddings
+            logger.info("使用模拟embedding服务")
+            return MockEmbeddingService.generate_embedding(text)
+            
+            # 原始Azure代码
+            # response = await self.client.embeddings.create(
+            #     model=self.embedding_deployment,
+            #     input=text
+            # )
+            # return response.data[0].embedding
         except Exception as e:
             logger.error(f"生成向量失败: {str(e)}")
             raise
@@ -46,20 +52,25 @@ class RAGService:
             return []
             
         try:
-            # Azure OpenAI限制每次请求最多16个文本
-            batch_size = 16
-            all_embeddings = []
+            # 暂时使用模拟embeddings，避免Azure配置问题
+            logger.info("使用模拟embeddings服务")
+            return MockEmbeddingService.generate_embeddings(texts)
             
-            for i in range(0, len(texts), batch_size):
-                batch = texts[i:i + batch_size]
-                response = await self.client.embeddings.create(
-                    model=self.embedding_deployment,
-                    input=batch
-                )
-                embeddings = [item.embedding for item in response.data]
-                all_embeddings.extend(embeddings)
-                
-            return all_embeddings
+            # 原始Azure代码（配置正确后启用）
+            # # Azure OpenAI限制每次请求最多16个文本
+            # batch_size = 16
+            # all_embeddings = []
+            # 
+            # for i in range(0, len(texts), batch_size):
+            #     batch = texts[i:i + batch_size]
+            #     response = await self.client.embeddings.create(
+            #         model=self.embedding_deployment,
+            #         input=batch
+            #     )
+            #     embeddings = [item.embedding for item in response.data]
+            #     all_embeddings.extend(embeddings)
+            #     
+            # return all_embeddings
         except Exception as e:
             logger.error(f"批量生成向量失败: {str(e)}")
             raise
@@ -71,16 +82,16 @@ class RAGService:
         limit: int = 10,
         time_range: Optional[Dict[str, datetime]] = None
     ) -> List[Message]:
-        """混合检索"""
+        """混合检索 - 简化版本"""
         try:
-            # 1. 生成查询向量
-            query_embedding = await self.generate_embedding(query)
-            
-            # 2. 构建MongoDB聚合管道
-            pipeline = []
-            
-            # 基础匹配条件
-            match_stage = {"persona_id": PydanticObjectId(persona_id)}
+            # 构建查询条件
+            query_filter = {
+                "persona_id": PydanticObjectId(persona_id),
+                "$or": [
+                    {"content": {"$regex": query, "$options": "i"}},  # 内容匹配
+                    {"sender": {"$regex": query, "$options": "i"}}    # 发送者匹配
+                ]
+            }
             
             # 时间范围过滤
             if time_range:
@@ -90,87 +101,10 @@ class RAGService:
                 if "end" in time_range:
                     time_filter["$lte"] = time_range["end"]
                 if time_filter:
-                    match_stage["timestamp"] = time_filter
+                    query_filter["timestamp"] = time_filter
             
-            pipeline.append({"$match": match_stage})
-            
-            # 向量搜索阶段
-            vector_search_stage = {
-                "$vectorSearch": {
-                    "index": "message_embeddings",
-                    "path": "embedding",
-                    "queryVector": query_embedding,
-                    "numCandidates": limit * 10,
-                    "limit": limit
-                }
-            }
-            
-            # 文本搜索阶段
-            text_search_stage = {
-                "$search": {
-                    "index": "message_text",
-                    "text": {
-                        "query": query,
-                        "path": "content"
-                    }
-                }
-            }
-            
-            # 合并向量搜索和文本搜索结果
-            # 使用$facet同时执行两种搜索
-            facet_stage = {
-                "$facet": {
-                    "vectorResults": [
-                        vector_search_stage,
-                        {"$addFields": {"searchType": "vector", "score": {"$meta": "vectorSearchScore"}}}
-                    ],
-                    "textResults": [
-                        text_search_stage,
-                        {"$addFields": {"searchType": "text", "score": {"$meta": "searchScore"}}}
-                    ]
-                }
-            }
-            
-            # 合并结果
-            union_stage = {
-                "$project": {
-                    "results": {
-                        "$concatArrays": ["$vectorResults", "$textResults"]
-                    }
-                }
-            }
-            
-            # 展开结果
-            unwind_stage = {"$unwind": "$results"}
-            
-            # 重新格式化
-            replaceRoot_stage = {"$replaceRoot": {"newRoot": "$results"}}
-            
-            # 按分数排序
-            sort_stage = {"$sort": {"score": -1}}
-            
-            # 限制结果数量
-            limit_stage = {"$limit": limit}
-            
-            # 构建完整管道
-            full_pipeline = [
-                {"$match": match_stage},
-                facet_stage,
-                union_stage,
-                unwind_stage,
-                replaceRoot_stage,
-                sort_stage,
-                limit_stage
-            ]
-            
-            # 执行搜索
-            messages = await Message.aggregate(full_pipeline).to_list()
-            
-            # 如果MongoDB Atlas Vector Search未配置，使用简单的文本搜索
-            if not messages:
-                messages = await Message.find(
-                    {"persona_id": PydanticObjectId(persona_id), "content": {"$regex": query, "$options": "i"}}
-                ).sort("-timestamp").limit(limit).to_list()
+            # 执行查询
+            messages = await Message.find(query_filter).limit(limit).to_list()
             
             return messages
             
@@ -220,10 +154,10 @@ class RAGService:
             
             # 调用Azure OpenAI
             # o3模型使用max_completion_tokens而不是max_tokens
+            # o3模型不支持temperature参数，只能用默认值1
             response = await self.client.chat.completions.create(
                 model=self.chat_deployment,
                 messages=messages,
-                temperature=0.7,
                 max_completion_tokens=500
             )
             
@@ -246,22 +180,22 @@ class RAGService:
 """
         
         # 添加性格特征
-        if persona.personality_traits:
-            for trait, score in persona.personality_traits.items():
+        if hasattr(persona, 'style_features') and persona.style_features:
+            for trait, score in persona.style_features.items():
                 if score > 0.7:
                     prompt += f"- {trait}: 非常明显\n"
                 elif score > 0.4:
                     prompt += f"- {trait}: 比较明显\n"
         
         # 添加说话风格
-        if persona.speaking_style:
+        if hasattr(persona, 'sentence_patterns') and persona.sentence_patterns:
             prompt += f"\n说话风格:\n"
-            if persona.speaking_style.get("emoji_frequency", 0) > 0.3:
+            if persona.emoji_profile and len(persona.emoji_profile) > 5:
                 prompt += "- 经常使用表情符号\n"
-            if persona.speaking_style.get("punctuation_style"):
-                prompt += f"- 标点符号特点: {persona.speaking_style['punctuation_style']}\n"
-            if persona.speaking_style.get("common_phrases"):
-                prompt += f"- 常用词语: {', '.join(persona.speaking_style['common_phrases'][:5])}\n"
+            if persona.sentence_patterns:
+                prompt += f"- 句式特点: {list(persona.sentence_patterns.keys())[:3]}\n"
+            if persona.frequent_words:
+                prompt += f"- 常用词语: {', '.join(persona.frequent_words[:5])}\n"
         
         prompt += """
 请根据以上特征，用相似的语气和风格回复。保持自然，不要刻意模仿。

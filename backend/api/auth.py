@@ -25,7 +25,15 @@ async def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    return user
+    
+    # 转换为响应格式
+    return UserResponse(
+        id=str(user.id),
+        email=user.email,
+        username=user.username,
+        is_active=user.is_active,
+        created_at=user.created_at
+    )
 
 
 @router.post("/token", response_model=Token)

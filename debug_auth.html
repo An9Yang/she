@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug</title>
+</head>
+<body>
+    <h1>认证状态调试</h1>
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        // 检查localStorage
+        const token = localStorage.getItem('token');
+        output.innerHTML += `<h2>LocalStorage Token:</h2>`;
+        output.innerHTML += `<pre>${token ? token.substring(0, 50) + '...' : 'No token found'}</pre>`;
+        
+        // 检查Cookie
+        output.innerHTML += `<h2>Cookies:</h2>`;
+        output.innerHTML += `<pre>${document.cookie || 'No cookies found'}</pre>`;
+        
+        // 测试API调用
+        output.innerHTML += `<h2>测试API调用:</h2>`;
+        
+        async function testAuth() {
+            // 测试获取用户信息
+            try {
+                const response = await fetch('http://localhost:8000/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                output.innerHTML += `<p>Status: ${response.status}</p>`;
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    output.innerHTML += `<pre>User: ${JSON.stringify(user, null, 2)}</pre>`;
+                } else {
+                    const error = await response.text();
+                    output.innerHTML += `<pre>Error: ${error}</pre>`;
+                }
+            } catch (err) {
+                output.innerHTML += `<pre>Network Error: ${err.message}</pre>`;
+            }
+        }
+        
+        if (token) {
+            testAuth();
+        } else {
+            output.innerHTML += `<p style="color: red;">No token found - please login first</p>`;
+        }
+    </script>
+</body>
+</html>

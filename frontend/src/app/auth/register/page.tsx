@@ -37,6 +37,7 @@ export default function RegisterPage() {
       await api.auth.register({
         name: formData.name,
         email: formData.email,
+        username: formData.email, // 使用email作为username
         password: formData.password,
       })
       

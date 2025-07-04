@@ -308,11 +308,9 @@ class DataProcessorService:
         )
         
         if patterns:
-            persona.personality_traits = patterns.get('emotional_patterns', {})
-            persona.speaking_style = {
-                'response_patterns': patterns.get('response_patterns', {}),
-                'topic_transitions': patterns.get('topic_transitions', [])
-            }
+            persona.style_features = patterns.get('emotional_patterns', {})
+            persona.sentence_patterns = patterns.get('response_patterns', {})
+            persona.topic_preferences = patterns.get('topic_transitions', [])
         
         await persona.save()
     

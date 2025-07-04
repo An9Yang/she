@@ -2,10 +2,10 @@
 用户相关Schema
 """
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
-from uuid import UUID
-from typing import Optional
+from typing import Optional, Any
+from bson import ObjectId
 
 
 class UserBase(BaseModel):
@@ -23,12 +23,22 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
-    id: UUID
+    id: str
     is_active: bool
     created_at: datetime
     
+    @field_validator('id', mode='before')
+    def convert_objectid(cls, v):
+        if isinstance(v, ObjectId):
+            return str(v)
+        return v
+    
     class Config:
         from_attributes = True
+        json_encoders = {
+            ObjectId: lambda v: str(v),
+            datetime: lambda v: v.isoformat()
+        }
 
 
 class Token(BaseModel):

@@ -3,8 +3,8 @@
  */
 import { mockApi } from './mockApi'
 
-// 开发模式 - 使用模拟API
-const USE_MOCK_API = true
+// 开发模式 - 使用真实API
+const USE_MOCK_API = false
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
@@ -45,7 +45,7 @@ async function fetchAPI(
 
 // 认证相关
 export const authApi = {
-  register: async (data: { email: string; password: string; name: string }) => {
+  register: async (data: { email: string; username: string; password: string; name: string }) => {
     return fetchAPI('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -71,11 +71,15 @@ export const authApi = {
     
     const result = await response.json()
     localStorage.setItem('token', result.access_token)
+    // 同时设置cookie供middleware使用
+    document.cookie = `auth-token=${result.access_token}; path=/; max-age=86400`
     return result
   },
   
   logout: () => {
     localStorage.removeItem('token')
+    // 清除cookie
+    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   },
   
   getCurrentUser: async () => {
@@ -86,7 +90,7 @@ export const authApi = {
 // 人格相关
 export const personaApi = {
   list: async () => {
-    return fetchAPI('/personas')
+    return fetchAPI('/personas/')  // 添加尾部斜杠
   },
   
   get: async (id: string) => {
@@ -113,7 +117,7 @@ export const uploadApi = {
       headers['Authorization'] = `Bearer ${token}`
     }
     
-    const response = await fetch(`${API_BASE_URL}/upload`, {
+    const response = await fetch(`${API_BASE_URL}/upload/`, {  // 添加尾部斜杠
       method: 'POST',
       headers,
       body: formData,
@@ -134,11 +138,11 @@ export const uploadApi = {
 // 对话相关
 export const chatApi = {
   listChats: async () => {
-    return fetchAPI('/chat')
+    return fetchAPI('/chat/')  // 添加尾部斜杠
   },
   
   createChat: async (personaId: string, title?: string) => {
-    return fetchAPI('/chat', {
+    return fetchAPI('/chat/', {  // 添加尾部斜杠
       method: 'POST',
       body: JSON.stringify({ persona_id: personaId, title }),
     })
@@ -175,7 +179,7 @@ export const chatApi = {
 // 根据开发模式选择API
 const api = USE_MOCK_API ? mockApi : {
   auth: authApi,
-  personas: personaApi,
+  persona: personaApi,  // 注意：这里应该是 persona 不是 personas
   upload: uploadApi,
   chat: chatApi,
 }
