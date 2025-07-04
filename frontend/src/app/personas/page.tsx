@@ -16,9 +16,6 @@ export default function PersonasPage() {
   const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
-    // 添加调试信息
-    console.log('PersonasPage mounted, checking auth...')
-    console.log('Current token:', localStorage.getItem('token'))
     checkAuthAndLoadData()
   }, [])
 
@@ -31,10 +28,6 @@ export default function PersonasPage() {
       // 认证成功后再加载数据
       await loadPersonas()
     } catch (error: any) {
-      // 401错误是预期的（用户未登录），不需要在控制台显示
-      if (error.status !== 401) {
-        console.error('Authentication error:', error)
-      }
       // 跳转到登录页
       router.push('/auth/login')
     }
@@ -43,15 +36,6 @@ export default function PersonasPage() {
   const loadPersonas = async () => {
     try {
       const data = await api.persona.list()
-      console.log('🔍 调试: 从API获取的personas数据:', data)
-      if (data && data.length > 0) {
-        console.log('🔍 第一个persona的结构:', data[0])
-        console.log('🔍 检查id字段:', {
-          'id': data[0].id,
-          '_id': data[0]._id,
-          '所有字段': Object.keys(data[0])
-        })
-      }
       setPersonas(data)
     } catch (error) {
       console.error('Failed to load personas:', error)

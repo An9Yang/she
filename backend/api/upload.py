@@ -82,20 +82,34 @@ async def check_upload_status(
     current_user: User = Depends(get_current_user)
 ):
     """检查上传任务状态"""
-    # 模拟任务完成
-    if task_id not in task_status_store:
-        # 模拟一个成功的任务
+    # 检查任务存储中的状态
+    if task_id in task_status_store:
+        return task_status_store[task_id]
+    
+    # 如果不在存储中，尝试从数据库查找最新创建的persona
+    # 这是一个临时解决方案，实际应该在处理完成时更新task_status_store
+    from backend.models.persona import Persona
+    
+    # 查找用户最新创建的处理中或已完成的persona
+    latest_persona = await Persona.find(
+        {"user_id": current_user.id}
+    ).sort("-created_at").limit(1).to_list()
+    
+    if latest_persona:
+        persona = latest_persona[0]
+        # 如果找到了persona，返回成功状态
         return {
             "task_id": task_id,
-            "status": "completed",
-            "persona_id": "507f1f77bcf86cd799439011",
-            "message_count": 100,
+            "status": "completed" if persona.status == "ready" else "processing",
+            "persona_id": str(persona.id),
+            "message_count": persona.message_count,
             "error": None
         }
     
-    return task_status_store.get(task_id, {
+    # 默认返回处理中状态
+    return {
         "task_id": task_id,
         "status": "processing",
         "progress": 50,
         "message": "正在分析聊天记录..."
-    })
+    }

@@ -92,11 +92,11 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
           if (status.persona_id && onSuccess) {
             onSuccess(status.persona_id)
           }
-        } else if (status.status === 'failed') {
+        } else if (status.status === 'failed' || status.status === 'error') {
           throw new Error(status.error || '处理失败')
         } else {
-          // 继续等待
-          setProgress(Math.min(90, progress + 10))
+          // 继续等待 - 使用函数式更新来获取最新的progress值
+          setProgress(prevProgress => Math.min(90, prevProgress + 10))
           attempts++
           setTimeout(checkStatus, 5000) // 5秒后再次检查
         }

@@ -44,6 +44,9 @@ class DataProcessorService:
         task_id: str
     ) -> Dict:
         """处理聊天数据的主入口"""
+        # 导入task_status_store
+        from backend.api.upload import task_status_store
+        
         try:
             logger.info(f"开始处理文件: {file_path}")
             
@@ -77,6 +80,16 @@ class DataProcessorService:
             self._cleanup_temp_file(file_path)
             
             logger.info(f"处理完成: {persona.name}")
+            
+            # 更新任务状态
+            task_status_store[task_id] = {
+                "task_id": task_id,
+                "status": "completed",
+                "persona_id": str(persona.id),
+                "message_count": len(cleaned_messages),
+                "error": None
+            }
+            
             return {
                 "status": "success",
                 "persona_id": str(persona.id),
@@ -85,6 +98,16 @@ class DataProcessorService:
             
         except Exception as e:
             logger.error(f"处理失败: {str(e)}")
+            
+            # 更新任务状态为错误
+            task_status_store[task_id] = {
+                "task_id": task_id,
+                "status": "error",
+                "error": str(e),
+                "persona_id": None,
+                "message_count": 0
+            }
+            
             return {
                 "status": "error",
                 "error": str(e)
@@ -108,24 +131,72 @@ class DataProcessorService:
             return result['encoding'] or 'utf-8'
     
     async def _parse_txt_chat(self, file_path: str) -> List[Dict]:
-        """解析TXT格式的聊天记录（如WhatsApp导出）"""
+        """解析TXT格式的聊天记录（支持多种格式）"""
         messages = []
         encoding = self._detect_encoding(file_path)
         
-        # WhatsApp格式: [2024/1/1, 10:30:45] 张三: 消息内容
-        pattern = r'\[(\d{4}/\d{1,2}/\d{1,2},\s*\d{1,2}:\d{2}:\d{2})\]\s*([^:]+):\s*(.*)'
+        # 支持多种聊天格式
+        patterns = [
+            # WhatsApp格式1: [2024/1/1, 10:30:45] 张三: 消息内容
+            (r'\[(\d{4}/\d{1,2}/\d{1,2},\s*\d{1,2}:\d{2}:\d{2})\]\s*([^:]+):\s*(.*)', 'whatsapp1'),
+            # WhatsApp格式2: 1/1/24, 10:30 - 张三: 消息内容
+            (r'(\d{1,2}/\d{1,2}/\d{2,4},?\s*\d{1,2}:\d{2})\s*-\s*([^:]+):\s*(.*)', 'whatsapp2'),
+            # 微信格式: 2024-01-01 10:30:45 张三\n消息内容
+            (r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+([^\n]+)\n([^\n]+)', 'wechat'),
+            # 通用格式1: 2024-01-01 10:30 张三: 消息内容
+            (r'(\d{4}[-/]\d{2}[-/]\d{2}\s+\d{2}:\d{2}(?::\d{2})?)\s*([^:]+):\s*(.*)', 'generic1'),
+            # 简单格式: 张三: 消息内容（用于没有时间戳的情况）
+            (r'^([^:]+):\s*(.+)$', 'simple'),
+        ]
         
         with open(file_path, 'r', encoding=encoding) as f:
             content = f.read()
-            matches = re.findall(pattern, content)
             
-            for match in matches:
-                timestamp_str, sender, content = match
-                messages.append({
-                    'timestamp': self._parse_timestamp(timestamp_str),
-                    'sender': sender.strip(),
-                    'content': content.strip()
-                })
+            # 尝试每种格式，使用匹配最多的格式
+            best_matches = []
+            best_format = None
+            
+            for pattern, format_name in patterns:
+                if format_name == 'simple':
+                    # 简单格式按行处理
+                    lines = content.split('\n')
+                    temp_matches = []
+                    for line in lines:
+                        match = re.match(pattern, line.strip())
+                        if match and line.strip():
+                            temp_matches.append(match.groups())
+                else:
+                    temp_matches = re.findall(pattern, content, re.MULTILINE)
+                
+                if len(temp_matches) > len(best_matches):
+                    best_matches = temp_matches
+                    best_format = format_name
+            
+            logger.info(f"使用格式 {best_format} 解析，找到 {len(best_matches)} 条消息")
+            
+            # 处理匹配结果
+            for match in best_matches:
+                if best_format == 'simple':
+                    # 简单格式没有时间戳
+                    sender, content = match
+                    messages.append({
+                        'timestamp': datetime.now(),  # 使用当前时间作为默认
+                        'sender': sender.strip(),
+                        'content': content.strip()
+                    })
+                else:
+                    # 其他格式有时间戳
+                    timestamp_str, sender, content = match
+                    try:
+                        timestamp = self._parse_timestamp(timestamp_str)
+                    except:
+                        timestamp = datetime.now()  # 解析失败时使用当前时间
+                    
+                    messages.append({
+                        'timestamp': timestamp,
+                        'sender': sender.strip(),
+                        'content': content.strip()
+                    })
         
         return messages
     
@@ -218,15 +289,24 @@ class DataProcessorService:
         """解析时间戳"""
         # 尝试多种时间格式
         formats = [
-            '%Y/%m/%d, %H:%M:%S',
-            '%Y-%m-%d %H:%M:%S',
-            '%Y年%m月%d日 %H:%M:%S',
-            '%d/%m/%Y, %H:%M:%S',
+            '%Y/%m/%d, %H:%M:%S',     # 2024/1/1, 10:30:45
+            '%Y-%m-%d %H:%M:%S',       # 2024-01-01 10:30:45
+            '%Y年%m月%d日 %H:%M:%S',    # 2024年1月1日 10:30:45
+            '%d/%m/%Y, %H:%M:%S',      # 01/01/2024, 10:30:45
+            '%m/%d/%y, %H:%M',         # 1/1/24, 10:30
+            '%d/%m/%y, %H:%M',         # 01/01/24, 10:30
+            '%Y-%m-%d %H:%M',          # 2024-01-01 10:30
+            '%Y/%m/%d %H:%M',          # 2024/01/01 10:30
+            '%d.%m.%Y %H:%M:%S',       # 01.01.2024 10:30:45
+            '%d.%m.%Y %H:%M',          # 01.01.2024 10:30
         ]
+        
+        # 清理时间戳字符串
+        timestamp_str = timestamp_str.strip()
         
         for fmt in formats:
             try:
-                return datetime.strptime(timestamp_str.strip(), fmt)
+                return datetime.strptime(timestamp_str, fmt)
             except:
                 continue
         
