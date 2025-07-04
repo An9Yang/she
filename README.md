@@ -102,7 +102,7 @@ npm install
 
 ## 📝 许可证
 
-[待定]
+MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 *项目由 Claude Code 协助开发*
