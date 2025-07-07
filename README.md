@@ -92,6 +92,22 @@ npm install
 - MVP目标: 2025-08-30
 - 进度: 83% (15/18 核心任务完成)
 
+## 🧪 测试
+
+运行测试套件：
+```bash
+# 运行所有测试
+python run_tests.py
+
+# 运行特定测试
+pytest tests/api/  # API测试
+pytest tests/services/  # 服务测试
+pytest tests/core/  # 核心功能测试
+
+# 生成覆盖率报告
+pytest --cov=backend --cov-report=html
+```
+
 ## 🤝 参与贡献
 
 本项目采用文档驱动开发，所有决策和进度都记录在案。参与前请先阅读：
@@ -99,6 +115,8 @@ npm install
 1. `CLAUDE.md` - 了解工作流程
 2. `DEVELOPMENT.md` - 查看当前进度
 3. `TECH_DECISIONS.md` - 理解技术选择
+4. `TEST_LOG.md` - 测试记录和结果
+5. `OPTIMIZATION_PLAN.md` - 优化建议和计划
 
 ## 📝 许可证
 

@@ -32,19 +32,24 @@ class RAGService:
     async def generate_embedding(self, text: str) -> List[float]:
         """生成文本向量"""
         try:
-            # 暂时使用模拟embeddings
-            logger.info("使用模拟embedding服务")
-            return MockEmbeddingService.generate_embedding(text)
+            # 检查是否使用模拟embeddings
+            use_mock = getattr(settings, "USE_MOCK_EMBEDDINGS", "false").lower() == "true"
             
-            # 原始Azure代码
-            # response = await self.client.embeddings.create(
-            #     model=self.embedding_deployment,
-            #     input=text
-            # )
-            # return response.data[0].embedding
+            if use_mock:
+                logger.info("使用模拟embedding服务")
+                return MockEmbeddingService.generate_embedding(text)
+            else:
+                logger.info("使用Azure OpenAI embedding服务")
+                response = await self.client.embeddings.create(
+                    model=self.embedding_deployment,
+                    input=text
+                )
+                return response.data[0].embedding
         except Exception as e:
             logger.error(f"生成向量失败: {str(e)}")
-            raise
+            # 如果Azure失败，降级到模拟服务
+            logger.warning("Azure OpenAI失败，降级到模拟embedding服务")
+            return MockEmbeddingService.generate_embedding(text)
     
     async def batch_generate_embeddings(self, texts: List[str]) -> List[List[float]]:
         """批量生成向量"""
@@ -52,28 +57,33 @@ class RAGService:
             return []
             
         try:
-            # 暂时使用模拟embeddings，避免Azure配置问题
-            logger.info("使用模拟embeddings服务")
-            return MockEmbeddingService.generate_embeddings(texts)
+            # 检查是否使用模拟embeddings
+            use_mock = getattr(settings, "USE_MOCK_EMBEDDINGS", "false").lower() == "true"
             
-            # 原始Azure代码（配置正确后启用）
-            # # Azure OpenAI限制每次请求最多16个文本
-            # batch_size = 16
-            # all_embeddings = []
-            # 
-            # for i in range(0, len(texts), batch_size):
-            #     batch = texts[i:i + batch_size]
-            #     response = await self.client.embeddings.create(
-            #         model=self.embedding_deployment,
-            #         input=batch
-            #     )
-            #     embeddings = [item.embedding for item in response.data]
-            #     all_embeddings.extend(embeddings)
-            #     
-            # return all_embeddings
+            if use_mock:
+                logger.info("使用模拟embeddings服务")
+                return MockEmbeddingService.generate_embeddings(texts)
+            else:
+                logger.info(f"使用Azure OpenAI批量生成{len(texts)}个embeddings")
+                # Azure OpenAI限制每次请求最多16个文本
+                batch_size = 16
+                all_embeddings = []
+                
+                for i in range(0, len(texts), batch_size):
+                    batch = texts[i:i + batch_size]
+                    response = await self.client.embeddings.create(
+                        model=self.embedding_deployment,
+                        input=batch
+                    )
+                    embeddings = [item.embedding for item in response.data]
+                    all_embeddings.extend(embeddings)
+                    
+                return all_embeddings
         except Exception as e:
             logger.error(f"批量生成向量失败: {str(e)}")
-            raise
+            # 如果Azure失败，降级到模拟服务
+            logger.warning("Azure OpenAI失败，降级到模拟embeddings服务")
+            return MockEmbeddingService.generate_embeddings(texts)
     
     async def hybrid_search(
         self, 

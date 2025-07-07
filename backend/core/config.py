@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     CACHE_EMBEDDINGS: bool = True
     MAX_RETRIES: int = 3
     
+    # Feature Flags
+    USE_MOCK_EMBEDDINGS: str = Field(default="false", description="是否使用模拟embeddings")
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

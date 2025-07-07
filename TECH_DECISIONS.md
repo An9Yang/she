@@ -398,4 +398,38 @@ class Chat(Document):
 - ⚠️ 需要额外的数据库空间
 
 ---
+
+## ADR-011: Azure OpenAI o3模型集成
+**日期**: 2025-07-04  
+**状态**: ✅ 已采纳
+
+### 背景
+用户提供了Azure OpenAI o3模型的访问权限
+
+### 决策
+使用Azure OpenAI o3模型进行对话生成，同时保留mock embeddings
+
+### 实现
+```python
+# o3模型特殊配置
+response = await client.chat.completions.create(
+    model="o3",
+    messages=messages,
+    max_completion_tokens=500  # o3使用这个参数而非max_tokens
+    # temperature参数不支持，使用默认值
+)
+```
+
+### 原因
+1. **最新模型** - o3是OpenAI的最新模型
+2. **更好的性能** - 提供更高质量的对话
+3. **灵活配置** - 可以根据需要切换模型
+
+### 后果
+- ✅ 高质量的AI对话
+- ✅ 保持了系统的稳定性
+- ⚠️ 需要注意o3模型的特殊参数
+- ⚠️ Embedding仍使用mock实现
+
+---
 *最后更新: 2025-07-04*
