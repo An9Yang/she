@@ -10,7 +10,7 @@ from bson import ObjectId
 
 class UserBase(BaseModel):
     email: EmailStr
-    username: str
+    username: Optional[str] = None
 
 
 class UserCreate(UserBase):

@@ -30,6 +30,10 @@ class AuthService:
     
     async def create_user(self, user_data: UserCreate) -> Optional[User]:
         """创建用户"""
+        # 如果没有提供username，使用email的用户名部分
+        if not user_data.username:
+            user_data.username = user_data.email.split('@')[0]
+        
         # 检查邮箱是否已存在
         existing_user = await User.find_one(User.email == user_data.email)
         if existing_user:

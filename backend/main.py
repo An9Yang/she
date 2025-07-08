@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 import logging
 from dotenv import load_dotenv
 
-from backend.api import auth, personas, chat_api, upload
+from backend.api import auth, personas, chat_api, upload, adapter
 from backend.core.config import settings
 from backend.core.database import init_db, close_db
 
@@ -51,6 +51,7 @@ app.add_middleware(
 )
 
 # 注册路由
+app.include_router(adapter.router)  # API兼容性适配器
 app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
 app.include_router(upload.router, prefix="/api/upload", tags=["上传"])
 app.include_router(personas.router, prefix="/api/personas", tags=["人格"])

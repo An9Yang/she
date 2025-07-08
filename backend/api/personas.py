@@ -11,7 +11,7 @@ from backend.models.user import User
 from backend.models.persona import Persona
 from backend.models.message import Message
 from backend.models.chat_model import Chat
-from backend.schemas.persona import PersonaResponse
+from backend.schemas.persona import PersonaResponse, PersonaCreate
 
 router = APIRouter()
 
@@ -27,6 +27,25 @@ async def list_personas(
         {"user_id": current_user.id}
     ).skip(skip).limit(limit).to_list()
     return personas
+
+
+@router.post("/", response_model=PersonaResponse)
+async def create_persona(
+    persona_data: PersonaCreate,
+    current_user: User = Depends(get_current_user)
+):
+    """创建新人格"""
+    # 创建人格
+    persona = Persona(
+        user_id=current_user.id,
+        name=persona_data.name,
+        avatar_url=persona_data.avatar_url,
+        status="ready",  # processing, ready, error
+        message_count=0
+    )
+    
+    await persona.save()
+    return persona
 
 
 @router.get("/{persona_id}", response_model=PersonaResponse)

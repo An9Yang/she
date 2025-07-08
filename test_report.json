@@ -1,0 +1,80 @@
+{
+  "test_time": "2025-07-07T20:14:31.639017",
+  "summary": {
+    "total": 7,
+    "passed": 2,
+    "failed": 5,
+    "pass_rate": "28.6%"
+  },
+  "test_results": [
+    {
+      "module": "健康检查",
+      "test": "基础健康检查",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-07-07T20:14:25.275192"
+    },
+    {
+      "module": "认证",
+      "test": "用户注册",
+      "success": false,
+      "details": "'user'",
+      "timestamp": "2025-07-07T20:14:26.602457"
+    },
+    {
+      "module": "上传",
+      "test": "聊天文件上传",
+      "success": false,
+      "details": "{\"detail\":\"Not Found\"}",
+      "timestamp": "2025-07-07T20:14:27.609608"
+    },
+    {
+      "module": "人格",
+      "test": "创建人格",
+      "success": false,
+      "details": "状态码: 405",
+      "timestamp": "2025-07-07T20:14:28.621785"
+    },
+    {
+      "module": "边缘情况",
+      "test": "空文件上传",
+      "success": true,
+      "details": "",
+      "timestamp": "2025-07-07T20:14:30.635120"
+    },
+    {
+      "module": "边缘情况",
+      "test": "超长消息",
+      "success": false,
+      "details": "Request URL is missing an 'http://' or 'https://' protocol.",
+      "timestamp": "2025-07-07T20:14:30.636422"
+    },
+    {
+      "module": "边缘情况",
+      "test": "并发请求",
+      "success": false,
+      "details": "成功率: 0/5",
+      "timestamp": "2025-07-07T20:14:30.637881"
+    }
+  ],
+  "ux_issues": [
+    {
+      "category": "监控",
+      "issue": "健康检查应该显示MongoDB、Azure等依赖服务的具体状态",
+      "severity": "medium",
+      "timestamp": "2025-07-07T20:14:25.275199"
+    },
+    {
+      "category": "错误处理",
+      "issue": "空文件错误提示应该更具体，说明需要的最小内容",
+      "severity": "low",
+      "timestamp": "2025-07-07T20:14:30.635149"
+    },
+    {
+      "category": "性能",
+      "issue": "需要实现请求速率限制和排队机制",
+      "severity": "high",
+      "timestamp": "2025-07-07T20:14:30.637893"
+    }
+  ]
+}
