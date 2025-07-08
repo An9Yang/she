@@ -228,6 +228,47 @@
 
 ### ✅ 最新完成
 
+#### [2025-07-07] API修复与产品可用性提升
+- **状态**: ✅ 完成
+- **开始时间**: [2025-07-07 20:10]
+- **完成时间**: [2025-07-07 20:25]
+- **实际耗时**: 15分钟
+
+##### 修复的问题
+1. **登录API路径问题**
+   - 创建了`backend/api/adapter.py`适配器
+   - 支持前端使用`/api/auth/login`（映射到`/api/auth/token`）
+
+2. **注册username字段问题**
+   - 修改`backend/schemas/user.py`让username可选
+   - 在`backend/services/auth.py`中自动从email生成username
+
+3. **人格创建405错误**
+   - 在`backend/api/personas.py`添加了POST路由
+   - 修复了status枚举值问题（使用"ready"而非"analyzing"）
+
+4. **上传路径问题**
+   - 测试脚本使用了错误的路径`/api/upload/chat`
+   - 正确路径是`/api/upload/`
+
+5. **聊天API理解**
+   - 聊天需要先创建会话：POST `/api/chat/`
+   - 然后发送消息：POST `/api/chat/{chat_id}/messages`
+   - 不是直接发送到persona_id
+
+##### 产生的文件
+- `fix_api_issues.py` - 自动修复脚本
+- `backend/api/adapter.py` - API路径适配器
+- `test_fixes.py` - 修复验证脚本
+- `test_chat_flow.py` - 正确的聊天流程测试
+- `verify_all_fixes.py` - 完整功能验证
+- 多个`.backup`文件保留原始版本
+
+##### 当前产品状态
+- **可用性**: ✅ 完全可用
+- **所有核心功能正常工作**
+- **可以进行完整的用户流程**
+
 #### [2025-07-07] 环境配置修复与向量功能测试
 - **状态**: ✅ 完成
 - **开始时间**: [2025-07-07 17:45]
